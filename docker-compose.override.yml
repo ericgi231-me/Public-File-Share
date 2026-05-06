@@ -1,0 +1,10 @@
+services:
+  database:
+    # Expose MySQL to host for local PHP dev (npm run dev:backend)
+    ports:
+      - "${DEV_DB_PORT:-3307}:3306"
+
+  frontend:
+    # Allow access to frontend container via specified public port, no public access in prod
+    ports:
+      - "${DEV_PUBLIC_PORT:-8080}:80"

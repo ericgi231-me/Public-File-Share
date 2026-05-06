@@ -1,0 +1,160 @@
+name: Deploy to Production
+description: Continuous Deployment workflow for building and deploying the application to production.
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Quality Checks"]
+    types: [completed]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+  APP_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  build-backend:
+    name: Build Backend Image
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./packages/php
+          file: ./packages/php/Dockerfile
+          push: true
+          tags: ${{ env.BACKEND_IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-frontend:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./packages/react/Dockerfile
+          push: true
+          tags: ${{ env.FRONTEND_IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    needs: [build-backend, build-frontend]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Upload deployment files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml,packages/mysql/"
+          target: "~/apps/${{ env.APP_NAME }}"
+          strip_components: 0
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          FRONTEND_IMAGE: ${{ env.FRONTEND_IMAGE }}
+          BACKEND_IMAGE: ${{ env.BACKEND_IMAGE }}
+          APP_NAME: ${{ env.APP_NAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: FRONTEND_IMAGE,BACKEND_IMAGE,APP_NAME,DB_PASSWORD
+          script: |
+            cd ~/apps/$APP_NAME
+            
+            # Create/update .env file with image names
+            cat > .env << EOF
+            FRONTEND_IMAGE=$FRONTEND_IMAGE
+            BACKEND_IMAGE=$BACKEND_IMAGE
+            APP_NAME=$APP_NAME
+            DB_PASSWORD=$DB_PASSWORD
+            EOF
+
+            # Ensure external network exists
+            docker network create web 2>/dev/null || true
+            
+            # Pull latest images
+            docker pull $FRONTEND_IMAGE
+            docker pull $BACKEND_IMAGE
+            
+            # Stop old containers
+            docker compose down || true
+            
+            # Start new containers
+            docker compose up -d
+
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    needs: [deploy]
+    steps:
+      - name: Wait for services
+        run: sleep 10
+
+      - name: Check container health
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          APP_NAME: ${{ env.APP_NAME }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: APP_NAME
+          script: |
+            cd ~/apps/$APP_NAME
+            docker compose ps
+            
+            # Check if containers are running
+            if ! docker compose ps | grep -q "Up"; then
+              echo "❌ Containers are not running"
+              exit 1
+            fi
+            
+            echo "✅ Deployment successful"

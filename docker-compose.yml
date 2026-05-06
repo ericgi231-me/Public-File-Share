@@ -1,0 +1,65 @@
+services:
+  database:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=${DB_NAME:-god}
+      - MYSQL_USER=${DB_USER:-god_user}
+      - MYSQL_PASSWORD=${DB_PASSWORD:?need DB_PASSWORD}
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./packages/mysql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - internal
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: packages/php
+      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:?need BACKEND_IMAGE}
+    expose:
+      - "80"
+    environment:
+      - DB_HOST=database
+      - DB_NAME=${DB_NAME:-god}
+      - DB_USER=${DB_USER:-god_user}
+      - DB_PASSWORD=${DB_PASSWORD:?need DB_PASSWORD}
+      - COLLECTION_PATH=/var/www/html/collection
+      - COLLECTION_PATH_ENV=/var/www/html/collection
+    volumes:
+      - files_data:/var/www/html/collection
+    networks:
+      - internal
+    restart: unless-stopped
+
+  frontend:
+    # Build from local Dockerfile in dev, skip in prod
+    build:
+      context: .
+      dockerfile: packages/react/Dockerfile
+    # Use local image for dev, use remote image in prod
+    image: ${FRONTEND_IMAGE:?need FRONTEND_IMAGE}
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      internal:
+      web:
+        # Define a network alias for easier access to the frontend service
+        aliases:
+          - "${APP_NAME:?need APP_NAME}"
+
+networks:
+  # Internal network for inter-service communication
+  internal:
+    driver: bridge
+  # External network for exposing services to other containers
+  web:
+    external: true
+
+volumes:
+  db_data:
+  files_data:

@@ -1,0 +1,43 @@
+{
+  "name": "webapp-template",
+  "version": "1.0.0",
+  "description": "Full-stack web application template",
+  "private": true,
+  "packageManager": "npm@10.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "run-p --print-label dev:*",
+    "dev:db": "docker compose --env-file .env.devdb up -d database",
+    "dev:db:down": "docker compose --env-file .env.devdb stop database",
+    "dev:files:verify": "powershell -ExecutionPolicy Bypass -File ./scripts/verify-files-volume.ps1",
+    "dev:frontend": "npm run dev -w react",
+    "dev:backend": "php -S localhost:8000 -t ./packages/php",
+    "build": "run-s build:*",
+    "build:frontend": "npm run build -w react",
+    "test": "run-p test:*",
+    "test:frontend": "npm run test -w react --if-present",
+    "lint": "run-p lint:*",
+    "lint:frontend": "npm run lint -w react --if-present",
+    "clean": "run-p clean:*",
+    "clean:frontend": "npm run clean -w react --if-present",
+    "update-locks": "npm install --package-lock-only --workspaces",
+    "docker:build": "docker compose build",
+    "docker:start": "docker compose up --build -d",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:restart": "docker compose restart",
+    "docker:clean": "docker compose down -v && docker system prune -f"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "globals": "^17.0.0",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^6.1.2"
+  }
+}
