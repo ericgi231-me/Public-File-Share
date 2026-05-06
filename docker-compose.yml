@@ -28,7 +28,7 @@ services:
       - COLLECTION_PATH=/var/www/html/collection
       - COLLECTION_PATH_ENV=/var/www/html/collection
     volumes:
-      - files_data:/var/www/html/collection
+      - ${FILES_PATH:?need FILES_PATH}:/var/www/html/collection
     networks:
       - internal
     restart: unless-stopped
@@ -62,4 +62,3 @@ networks:
 
 volumes:
   db_data:
-  files_data:

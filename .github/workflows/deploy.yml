@@ -100,13 +100,24 @@ jobs:
           BACKEND_IMAGE: ${{ env.BACKEND_IMAGE }}
           APP_NAME: ${{ env.APP_NAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          FILES_PATH: ${{ secrets.FILES_PATH }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: FRONTEND_IMAGE,BACKEND_IMAGE,APP_NAME,DB_PASSWORD
+          envs: FRONTEND_IMAGE,BACKEND_IMAGE,APP_NAME,DB_PASSWORD,FILES_PATH
           script: |
             cd ~/apps/$APP_NAME
+
+            if [ -z "${DB_PASSWORD:-}" ]; then
+              echo "❌ DB_PASSWORD is empty or not set in GitHub Actions secrets"
+              exit 1
+            fi
+
+            if [ -z "${FILES_PATH:-}" ]; then
+              echo "❌ FILES_PATH is empty or not set in GitHub Actions secrets"
+              exit 1
+            fi
             
             # Create/update .env file with image names
             cat > .env << EOF
@@ -114,6 +125,7 @@ jobs:
             BACKEND_IMAGE=$BACKEND_IMAGE
             APP_NAME=$APP_NAME
             DB_PASSWORD=$DB_PASSWORD
+            FILES_PATH=$FILES_PATH
             EOF
 
             # Ensure external network exists
