@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo pdo_mysql mysqli \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
+COPY uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 WORKDIR /var/www/html
 COPY . /var/www/html/
 RUN chown -R www-data:www-data /var/www/html

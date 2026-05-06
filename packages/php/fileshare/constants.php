@@ -8,4 +8,4 @@ define('DB_PASS', $config['DB_PASS'] ?? ($config['DB_PASS_ENV'] ?? 'test_passwor
 define('COLLECTION_PATH', $config['COLLECTION_PATH'] ?? ($config['COLLECTION_PATH_ENV'] ?? '/var/www/html/collection'));
 define('MAX_FILE_SIZE', 150 * 1024 * 1024); // 150MB in bytes
 define('MAX_FILE_SIZE_MB', 150 );
-define('TIMEOUT_SECONDS', 10 );
+define('TIMEOUT_SECONDS', 600 );
