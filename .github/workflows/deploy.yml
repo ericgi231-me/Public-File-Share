@@ -13,9 +13,9 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
-  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
-  APP_NAME: ${{ github.event.repository.name }}
+  FRONTEND_IMAGE: ghcr.io/public-file-share/frontend:${{ github.sha }}
+  BACKEND_IMAGE: ghcr.io/public-file-share/backend:${{ github.sha }}
+  APP_NAME: public-file-share
 
 jobs:
   build-backend:
