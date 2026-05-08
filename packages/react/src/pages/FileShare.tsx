@@ -259,10 +259,6 @@ const FileShare = () => {
   const searchParams = new URLSearchParams(location.search);
   const isAdmin = searchParams.get('admin') === 'true';
 
-  useEffect(() => {
-    document.title = "Fileshare Is Me";
-  }, []);
-
   const [files, setFiles] = useState<FileData[]>([]);
   const [total_files, setTotalFiles] = useState<number>(0);
   const [page, setPage] = usePersistentState<number>('currentPage', 1);
