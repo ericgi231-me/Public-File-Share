@@ -25,10 +25,10 @@ services:
       - DB_NAME=${DB_NAME:-god}
       - DB_USER=${DB_USER:-god_user}
       - DB_PASSWORD=${DB_PASSWORD:?need DB_PASSWORD}
-      - COLLECTION_PATH=/media/ruby/site/collection
-      - COLLECTION_PATH_ENV=/media/ruby/site/collection
+      - COLLECTION_PATH=/var/www/html/collection
+      - COLLECTION_PATH_ENV=/var/www/html/collection
     volumes:
-      - ${FILES_PATH:?need FILES_PATH}:/media/ruby/site/collection
+      - ${FILES_PATH:?need FILES_PATH}:/var/www/html/collection
     networks:
       - internal
     restart: unless-stopped
