@@ -18,15 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-// Get the base URL dynamically
-$frontendHost = isset($_SERVER['HTTP_X_FRONTEND_HOST']) ? $_SERVER['HTTP_X_FRONTEND_HOST'] : $_SERVER['HTTP_HOST'];
-$isHttps = (
-    (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
-    (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
-);
-$scheme = $isHttps ? 'https' : 'http';
-$baseUrl = $scheme . "://" . $frontendHost;
-
 // Get arguments
 $start = $_GET['start'] ?? $DEFAULT_START;
 $size = $_GET['size'] ?? $MAX_FILES_PER_REQUEST;
@@ -78,7 +69,7 @@ try {
     if ($result->num_rows > 0) {
         while($row = $result->fetch_assoc()) {
             $files[] = [
-                'url' => $baseUrl.$FILE_DIRECTORY.$row['name'].".".$row['file_type'],
+                'url' => $FILE_DIRECTORY.$row['name'].".".$row['file_type'],
                 'special' => (bool)$row['special'],
                 'name' => $row['name'],
                 'file_type' => $row['file_type'],

@@ -357,11 +357,7 @@ const FileShare = () => {
     if (search) {
       apiCall += `&search=${encodeURIComponent(search)}`;
     }
-    fetch(apiCall, {
-      headers: {
-        'X-Frontend-Host': window.location.host
-      }
-    })
+    fetch(apiCall)
       .then(async res => {
         const data = await res.json();
         if (!res.ok || data.status === 'error') {
